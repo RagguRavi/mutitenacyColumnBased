@@ -1,0 +1,109 @@
+<?xml  version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa-1.8.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+                           
+	<!-- Enable AspectJ style of Spring AOP -->
+	<aop:aspectj-autoproxy />   
+	<mvc:annotation-driven/>
+	<jpa:repositories base-package="com.demo.repository"></jpa:repositories>
+	
+	<!-- Contexts Annotation Enabled -->
+	<context:annotation-config />
+	
+	<!-- For Enabling Stereotype annotations -->
+	<context:component-scan base-package="com.demo.*"/>
+	
+	 <!-- Entry for JSP pages -->
+   	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+   		<property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
+    	<property name="prefix" value="/WEB-INF/views/" />
+      	<property name="suffix" value=".jsp" />
+   	</bean> 
+   	
+   		<!-- For Externalize configurations -->
+   <!--  <util:properties  id="propertyConfigurer" location="/WEB-INF/config.properties,/WEB-INF/config_local.properties"/>
+    <context:property-placeholder properties-ref="propertyConfigurer" /> -->
+    
+    <bean id="dataSource" class="org.apache.tomcat.dbcp.dbcp2.BasicDataSource">
+        <property name="driverClassName" value="org.postgresql.Driver"/>
+        <property name="url" value="jdbc:postgresql://127.0.0.1:5432/ravitest"/>
+        <property name="username" value="postgres"/>
+        <property name="password" value="Ravi@123"/>
+    </bean>
+    
+    
+     <!-- Session Factory -->
+   <!--  <bean id="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">  
+        <property name="dataSource" ref="dataSource"/>
+        <property name="annotatedClasses">
+			<list>
+				Shared Tables
+				<value>com.demo.domain.Employee</value>
+			</list>
+		</property>
+		<property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</prop>
+                <prop key="hibernate.hbm2ddl.auto">update</prop>
+                <prop key="hibernate.show_sql">true</prop> 
+             </props>
+        </property>
+    </bean> -->
+    
+    <bean id="hibernateInterceptor" class="com.demo.interceptor.CutomHibernateInterceptor" />
+    
+    <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean" p:packagesToScan="com.demo.domain" p:dataSource-ref="dataSource">
+		<property name="jpaVendorAdapter">
+			<bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
+				<property name="generateDdl" value="true" />
+				<property name="showSql" value="true" />
+			</bean>
+		</property>
+		<property name="jpaProperties">
+			<map>
+				<entry key="hibernate.ejb.interceptor">
+					<ref bean="hibernateInterceptor"/>
+				</entry>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+		<property name="entityManagerFactory" ref="entityManagerFactory" />
+	</bean>
+    
+    <!-- Instance of dataSource get from current tenant - Used in Remember-me functionality -->
+    <!-- <bean id="multiTenantConnectionProvider" class="com.beepermd.security.MultiTenantConnectionProvider"></bean>
+    <bean id="sharedDataSource" class="com.beepermd.security.MultiTenantConnectionProvider" factory-method="selectAnyDataSource" factory-bean="multiTenantConnectionProvider"></bean>
+	 -->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+   <!--  <bean id="transactionManager" class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"/>
+	</bean> -->
+	
+	<!-- Instance of transaction template for Programmatic Transactions -->
+	<bean id="transactionTemplate" class="org.springframework.transaction.support.TransactionTemplate">
+		<property name="transactionManager" ref="transactionManager"></property>
+	</bean>
+	
+	<bean id="transactionTemplateWithNewTransaction" class="org.springframework.transaction.support.TransactionTemplate">
+		<property name="transactionManager" ref="transactionManager"></property>
+		<property name="propagationBehaviorName" value="PROPAGATION_REQUIRES_NEW"/>
+	</bean>           
+</beans>
